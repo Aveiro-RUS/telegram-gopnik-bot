@@ -11,46 +11,34 @@ client = OpenAI(
 # Инициализация бота Telegram с вашим токеном из config.py
 bot = telebot.TeleBot(config.telegram_bot_token)
 
-# Имя бота в Telegram
-BOT_USERNAME = "@Chat37GPT37_BOT"
+# Список для хранения истории разговора
+conversation_history = []
+
+# Промт для общения как гопник
+gopnik_prompt = "Ты гопник из подворотни. Общайся в стиле гопника: используй сленг, мат, и будь слегка агрессивным. Ты должен вести себя как пацанчик, который знает всё и вся."
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
-    # Проверяем, упомянули ли бота в тексте
-    if BOT_USERNAME.lower() not in message.text.lower():
-        return  # Если имя бота не упоминается, ничего не делаем
+    # Запрос ввода пользователя
+    user_input = message.text
 
-    # Убираем имя бота из текста, чтобы передать чистый запрос
-    user_input = message.text.replace(BOT_USERNAME, "").strip()
+    # Добавление ввода пользователя в историю разговора
+    conversation_history.append({"role": "user", "content": user_input})
 
-    # Формируем промт для гопнического стиля
-    system_prompt = (
-        "Ты должен отвечать как гопник с двора: используй уличный сленг, "
-        "мат, и будь слегка агрессивным. Сохраняй неформальный тон, но отвечай по делу."
+    # Добавление промта гопника в историю для изменения стиля общения
+    conversation_history.insert(0, {"role": "system", "content": gopnik_prompt})
+
+    # Отправка запроса в нейронную сеть
+    chat_completion = client.chat.completions.create(
+        model="deepseek-coder",
+        messages=conversation_history
     )
 
-    # Создаем запрос с промтом и пользовательским вводом
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_input}
-    ]
+    # Извлечение и вывод ответа нейронной сети
+    ai_response_content = chat_completion.choices[0].message.content
+    bot.reply_to(message, ai_response_content)
 
-    try:
-        # Отправка запроса в нейронную сеть
-        chat_completion = client.chat.completions.create(
-            model="deepseek-chat",
-            messages=messages
-        )
+    # Добавление ответа нейронной сети в историю разговора
+    conversation_history.append({"role": "system", "content": ai_response_content})
 
-        # Извлечение ответа
-        ai_response_content = chat_completion.choices[0].message.content
-
-        # Отправка ответа пользователю
-        bot.reply_to(message, ai_response_content)
-
-    except Exception as e:
-        # В случае ошибки отправляем сообщение об ошибке
-        bot.reply_to(message, f"Ошибочка вышла, братан: {e}")
-
-# Запуск бота
 bot.polling()
