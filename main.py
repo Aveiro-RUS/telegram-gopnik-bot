@@ -11,34 +11,30 @@ client = OpenAI(
 # Инициализация бота Telegram с вашим токеном из config.py
 bot = telebot.TeleBot(config.telegram_bot_token)
 
-# Список для хранения истории разговора
-conversation_history = []
-
 # Промт для общения как гопник
 gopnik_prompt = "Ты гопник из подворотни. Общайся в стиле гопника: используй сленг, мат, и будь слегка агрессивным. Ты должен вести себя как пацанчик, который знает всё и вся."
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
-    # Запрос ввода пользователя
-    user_input = message.text
+    # Проверка, упоминается ли бот в сообщении
+    if "@gopnik37_bot" in message.text:
+        # Убираем упоминание бота из текста сообщения
+        user_input = message.text.replace("@gopnik37_bot", "").strip()
 
-    # Добавление ввода пользователя в историю разговора
-    conversation_history.append({"role": "user", "content": user_input})
+        # Создание сообщения с промтом гопника и текущим вводом пользователя
+        messages = [
+            {"role": "system", "content": gopnik_prompt},
+            {"role": "user", "content": user_input}
+        ]
 
-    # Добавление промта гопника в историю для изменения стиля общения
-    conversation_history.insert(0, {"role": "system", "content": gopnik_prompt})
+        # Отправка запроса в нейронную сеть
+        chat_completion = client.chat.completions.create(
+            model="deepseek-coder",
+            messages=messages
+        )
 
-    # Отправка запроса в нейронную сеть
-    chat_completion = client.chat.completions.create(
-        model="deepseek-coder",
-        messages=conversation_history
-    )
-
-    # Извлечение и вывод ответа нейронной сети
-    ai_response_content = chat_completion.choices[0].message.content
-    bot.reply_to(message, ai_response_content)
-
-    # Добавление ответа нейронной сети в историю разговора
-    conversation_history.append({"role": "system", "content": ai_response_content})
+        # Извлечение и вывод ответа нейронной сети
+        ai_response_content = chat_completion.choices[0].message.content
+        bot.reply_to(message, ai_response_content)
 
 bot.polling()
