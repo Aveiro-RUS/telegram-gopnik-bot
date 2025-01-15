@@ -14,14 +14,11 @@ bot = telebot.TeleBot(config.telegram_bot_token)
 # Имя бота в Telegram
 BOT_USERNAME = "@Chat37GPT37_BOT"
 
-# Обработка сообщений из группы и личных сообщений
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
-    # Проверяем, пришло ли сообщение из группы или супер-группы
-    if message.chat.type in ['group', 'supergroup']:
-        # Если имя бота не упоминается, ничего не делаем
-        if BOT_USERNAME not in message.text:
-            return
+    # Проверяем, упомянули ли бота в тексте
+    if BOT_USERNAME.lower() not in message.text.lower():
+        return  # Если имя бота не упоминается, ничего не делаем
 
     # Убираем имя бота из текста, чтобы передать чистый запрос
     user_input = message.text.replace(BOT_USERNAME, "").strip()
