@@ -14,10 +14,13 @@ bot = telebot.TeleBot(config.telegram_bot_token)
 # Промт для общения как гопник
 gopnik_prompt = "Ты гопник из подворотни. Общайся в стиле гопника: используй сленг, мат, и будь слегка агрессивным. Ты должен вести себя как пацанчик, который знает всё и вся."
 
-# Общая история диалога
+# Общая история диалога с ограничением длины
 dialogue_history = [
     {"role": "system", "content": gopnik_prompt}
 ]
+
+# Максимальная длина истории
+dialogue_history_limit = 10
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
@@ -32,6 +35,10 @@ def handle_message(message):
         # Добавляем сообщение пользователя в общую историю
         dialogue_history.append({"role": "user", "content": user_input})
 
+        # Ограничиваем размер истории
+        if len(dialogue_history) > dialogue_history_limit:
+            dialogue_history = dialogue_history[-dialogue_history_limit:]
+
         # Отправляем запрос в нейронную сеть
         chat_completion = client.chat.completions.create(
             model="deepseek-coder",
@@ -43,6 +50,10 @@ def handle_message(message):
 
         # Добавляем ответ бота в общую историю
         dialogue_history.append({"role": "assistant", "content": ai_response_content})
+
+        # Ограничиваем размер истории после добавления ответа
+        if len(dialogue_history) > dialogue_history_limit:
+            dialogue_history = dialogue_history[-dialogue_history_limit:]
 
         bot.reply_to(message, ai_response_content)
 
